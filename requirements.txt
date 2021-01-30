@@ -9,3 +9,6 @@ Pillow==7.1.2
 skimage
 opencv_python
 pycocotools
+tensorflow-gpu==1.15.0
+youtube_dl
+gdown
