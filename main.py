@@ -13,8 +13,8 @@ def get_image_positions(box, img_height, img_width):
   y2 = int(box[3] * img_height)
   return x1, y1, x2, y2
 
-video_name = 'video.mp4'
-model_filename = 'mars-small128.pb'
+video_name = 'content/video.mp4'
+model_filename = 'data/mars-small128.pb'
 nn_budget = None
 max_cosine_distance = 0.4
 
@@ -92,3 +92,4 @@ print("""
 
 video.release()
 video_writer.release()
+
