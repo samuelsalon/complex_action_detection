@@ -2,6 +2,7 @@ from deepsort import generate_detections as gdet
 from deepsort.detection import Detection
 from deepsort.tracker import Tracker
 from deepsort.nn_matching import NearestNeighborDistanceMetric
+from YOLOv4 import YOLOv4
 
 import cv2
 import time
@@ -22,6 +23,7 @@ encoder = gdet.create_box_encoder(model_filename, batch_size=1)
 metric = NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
 tracker = Tracker(metric)
 
+model = YOLOv4('yolov4.weights', 'cfg/yolov4.cfg')
 names = model.class_names
 
 video = cv2.VideoCapture(video_name)
@@ -33,8 +35,6 @@ video_fps = video.get(cv2.CAP_PROP_FPS)
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 video_writer = cv2.VideoWriter("pred_" + video_name, fourcc, video_fps,
                                (video_width, video_height))
-
-model = YOLOv4('yolov4.weights', 'cfg/yolov4.cfg')
 
 
 frame_counter = 0
@@ -92,4 +92,5 @@ print("""
 
 video.release()
 video_writer.release()
+
 
