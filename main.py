@@ -34,6 +34,9 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 video_writer = cv2.VideoWriter("pred_" + video_name, fourcc, video_fps,
                                (video_width, video_height))
 
+model = YOLOv4('yolov4.weights', 'cfg/yolov4.cfg')
+
+
 frame_counter = 0
 start_time = time.time()
 while True:
