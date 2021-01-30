@@ -1,3 +1,4 @@
+import cv2
 from tool.utils import *
 from tool.torch_utils import *
 from tool.darknet2pytorch import Darknet
