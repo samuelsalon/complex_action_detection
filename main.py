@@ -2,6 +2,7 @@ from deepsort import generate_detections as gdet
 from deepsort.detection import Detection
 from deepsort.tracker import Tracker
 from deepsort.nn_matching import NearestNeighborDistanceMetric
+from tool.video import Video
 from model.yolov4 import YOLOv4
 
 import cv2
@@ -27,18 +28,17 @@ tracker = Tracker(metric)
 model = YOLOv4('yolov4.weights', 'cfg/yolov4.cfg')
 names = model.class_names
 
-video = cv2.VideoCapture(video_name)
-video_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-video_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-video_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-video_fps = video.get(cv2.CAP_PROP_FPS)
+video = Video(video_name)
 
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-video_writer = cv2.VideoWriter(output_video_name, fourcc, video_fps,
-                               (video_width, video_height))
+video_writer = cv2.VideoWriter(output_video_name, fourcc, video.fps,
+                               (video.width, video.height))
 
-frame_counter = 0
+frame_counter = -1
 start_time = time.time()
+
+annotation_text = {}
+annotation_file = open("data/annotation_file.txt", mode="w")
 while True:
   t0 = time.time()
 
@@ -49,7 +49,7 @@ while True:
   frame_counter += 1
 
   result = model(frame)
-  boxes = [get_image_positions(b, video_height, video_width) for b in result['boxes']]
+  boxes = [get_image_positions(b, video.height, video.width) for b in result['boxes']]
   scores = [i for i in result['scores']]
   class_names = [names[i] for i in result['classes']]
 
@@ -61,7 +61,7 @@ while True:
   features = encoder(frame, bboxes)
   detections = []
   for (bbox, score, class_name, feature) in zip(bboxes, scores, class_names, features):
-    detections.append(Detection(bbox, score, feature))
+    detections.append(Detection(bbox, score, feature, class_name))
 
   tracker.predict()
   tracker.update(detections)
@@ -69,18 +69,28 @@ while True:
   for track in tracker.tracks:
     if not track.is_confirmed() or track.time_since_update > 1:
       continue 
+    
+    annotation_text['frame'] = frame_counter
+    annotation_text['object'] = {'id':track.track_id, 'object_type':track.class_name}
+    annotation_text['bbox'] = (x1, y1, x2, y2)
+    
+    annotation_file.write(str(annotation_text) + "\n")
     x1, y1, x2, y2 = [int(i) for i in track.to_tlbr()]
+    
+    id_and_class_name = str(track.track_id) + ". " + track.class_name
+    cv2.putText(frame, id_and_class_name, (x1-10, y1), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (0, 255, 0), 2)
     cv2.rectangle(frame, (x1, y1),(x2, y2), (255, 0, 0), 2)
 
   video_writer.write(frame)
   t1 = time.time()
 
-  print("""
-    FRAME: {}/{}  
-    FPS: {:.2f}""".format(frame_counter, video_frames, 1.0 / (t1 - t0)))
+  print("""FRAME: {}/{}  FPS: {:.2f}""".format(frame_counter, video.frames_count, 1.0 / (t1 - t0)))
+
+video.release()
+video_writer.release()
+annotation_file.close()
 
 end_time = time.time()
-
 print("""
     INPUT: {}
     OUTPUT: {}
@@ -89,10 +99,7 @@ print("""
     TOTAL FRAMES: {}
     VIDEO_SIZE: {}x{}
     VIDEO_FPS: {}
-    """.format(input_name, output_video_name, end_time - start_time, 1.0 / (end_time - start_time), video_frames, video_width, video_height, video_fps))
-
-video.release()
-video_writer.release()
-
-
-
+    """.format(video.name, 
+               output_video_name, end_time - start_time, 
+               frame_counter / (end_time - start_time), 
+               video.frames_count, video.width, video.height, video.fps))
