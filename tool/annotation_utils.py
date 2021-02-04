@@ -142,7 +142,7 @@ def reconstruct_video_event(video_name, output_video_name, annotations):
 
     annotation = annotations[ann_counter]
     if annotation['frame'] == frame:
-      id_and_class_name = str(annotation["object"]["id"]) + ". " + annotation["object"]["object_type"]
+      id_and_class_name = str(annotation["object"]["id"]) + ". " + annotation["object"]["type"]
       x1, y1, x2, y2 = annotation['bbox']
       cv2.putText(img, id_and_class_name, (x1-20, y1), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (255, 0, 0), 2)
       cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)

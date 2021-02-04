@@ -11,13 +11,13 @@ import time
 
 
 def parse_arguments():
-  argparser = argsparse.ArgumentParser('Program used to detect and track objects in video')
-  argparser.add_argument('--video', '-v', default="/content/video.mp4", help="Input path to video")
-  argparser.add_argument('--output', '-o', default="/content/pred_video.mp4", help="Output path to video")
-  argparser.add_argument('--codec', '-c', default="mp4v", help="Codec for output video")
-  argparser.add_argument('--ann_file_output', '-afo', default="./data/annotation_file.txt", help="Output annotation file")
+  parser = argparse.ArgumentParser('Program used to detect and track objects in video')
+  parser.add_argument('--video', '-v', default="/content/video.mp4", help="Input path to video")
+  parser.add_argument('--output', '-o', default="/content/pred_video.mp4", help="Output path to video")
+  parser.add_argument('--codec', '-c', default="mp4v", help="Codec for output video")
+  parser.add_argument('--ann_file_output', '-afo', default="./data/annotation_file.txt", help="Output annotation file")
 
-  return argparser.parse_args()
+  return parser.parse_args()
 
 def get_image_positions(box, img_height, img_width):
   x1 = int(box[0] * img_width)
@@ -117,5 +117,6 @@ def main(args):
                video.frames_count, video.width, video.height, video.fps))
 
 if __name__ == "__main__":
-  args = parse_argumensts()
+  args = parse_arguments()
   main(args)
+
