@@ -9,6 +9,13 @@ import struct  # get_image_size
 import imghdr  # get_image_size
 
 
+def get_image_positions(box, img_height, img_width):
+  x1 = int(box[0] * img_width)
+  y1 = int(box[1] * img_height)
+  x2 = int(box[2] * img_width)
+  y2 = int(box[3] * img_height)
+  return x1, y1, x2, y2
+
 def sigmoid(x):
     return 1.0 / (np.exp(-x) + 1.)
 
