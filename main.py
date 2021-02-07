@@ -4,6 +4,7 @@ from deepsort.tracker import Tracker
 from deepsort.nn_matching import NearestNeighborDistanceMetric
 from tool.video_utils import VideoManager
 from model.yolov4 import YOLOv4
+from model.deepsort import DeepSort
 
 import cv2
 import argparse
@@ -39,19 +40,10 @@ def main(args):
   elif jump_every and jump_every < 2:
     raise ValueError("--jump_every value have to be bigger that 1")
 
-  if jump_until:
-    fps_coef = 1. / jump_until
-  elif jump_every:
-    fps_coef = (jump_every - 1) / jump_every
-  else:
-    fps_coef = 1
-
-  encoder = gdet.create_box_encoder(model_filename, batch_size=1)
-  metric = NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
-  tracker = Tracker(metric)
-
-  model = YOLOv4('yolov4.weights', 'cfg/yolov4.cfg', jump_until, jump_every)
-  names = model.class_names
+  detection_model = YOLOv4('yolov4.weights', 'cfg/yolov4.cfg', jump_until, jump_every)
+  tracker_model = DeepSort(model_filename, max_cosine_distance, nn_budget)
+  
+  names = detection_model.class_names
 
   video_manager = VideoManager(video_name, video_seq, output_path, args.codec)
   video_width = video_manager.video.width
@@ -67,50 +59,38 @@ def main(args):
     ret, sequence = video_manager.next()
 
     t0 = time.time()
-    pred_sequence = model(sequence)
+    detected_sequence = detection_model(sequence)
+    tracked_sequence = tracker_model(detected_sequence)
     
-    for (idx, frame) in enumerate(pred_sequence.frames):
+    for (idx, frame) in enumerate(tracked_sequence.frames):
       annotation_text = {}
-      if idx not in pred_sequence.detections.keys():
+      if idx not in tracked_sequence.detections.keys():
         video_manager.write(frame)
         continue
-      result = pred_sequence.detections[idx]
+      result = tracked_sequence.detections[idx]
+
+      ids = [id for id in result['ids']]
       boxes = [box for box in result['boxes']]
       scores = [score for score in result['scores']]
       class_names = [names[class_idx] for class_idx in result['classes']]
 
-      bboxes = []
-      for box in boxes:
-        x1, y1, x2, y2 = box
-        bboxes.append((x1, y1, x2-x1, y2-y1))
+      for (id, box, score, class_name) in zip(ids, boxes, scores, class_names):
+        x1, y1, x2, y2 = [int(i) for i in box]
 
-      features = encoder(frame, bboxes)
-      detections = []
-      for (bbox, score, class_name, feature) in zip(bboxes, scores, class_names, features):
-        detections.append(Detection(bbox, score, feature, class_name))
-
-      tracker.predict()
-      tracker.update(detections)
-
-      for track in tracker.tracks:
-        if not track.is_confirmed() or track.time_since_update > 1:
-          continue 
-
-        annotation_text['frame'] = sequence.frames_idx + idx
-        annotation_text['object'] = {'id':track.track_id, 'type':track.class_name}
+        annotation_text['frame'] = tracked_sequence.frames_idx + idx
+        annotation_text['object'] = {'id':id, 'type':class_name}
         annotation_text['bbox'] = (x1, y1, x2, y2)
 
         annotation_file.write(str(annotation_text) + "\n")
-        x1, y1, x2, y2 = [int(i) for i in track.to_tlbr()]
 
-        id_and_class_name = str(track.track_id) + ". " + track.class_name
+        id_and_class_name = str(id) + ". " + class_name
         cv2.putText(frame, id_and_class_name, (x1-10, y1), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (0, 255, 0), 2)
         cv2.rectangle(frame, (x1, y1),(x2, y2), (255, 0, 0), 2)
       
       video_manager.write(frame)
     t1 = time.time()
 
-    print("""FRAME: {}/{}  FPS: {:.2f}""".format(sequence.frames_idx, video_manager.video.frames_count, video_manager.clip_sequence_size / (t1 - t0)))
+    print("""FRAME: {}/{}  FPS: {:.2f}""".format(tracked_sequence.frames_idx, video_manager.video.frames_count, video_manager.clip_sequence_size / (t1 - t0)))
 
   video_manager.release()
   annotation_file.close()
@@ -132,4 +112,3 @@ def main(args):
 if __name__ == "__main__":
   args = parse_arguments()
   main(args)
-
