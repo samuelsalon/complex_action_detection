@@ -1,4 +1,5 @@
 import cv2
+from tool.detection_utils import *
 
 class Video(cv2.VideoCapture):
   
@@ -51,15 +52,18 @@ class Sequence:
   def __iter__(self):
     return self
 
+  def frame_shape(self):
+    if len(self.frames) > 0:
+      return self.frames[0].shape
+    else:
+      return (0, 0, 0)
+
   def set_frames(self, frames):
     self.frames = frames
 
   def set_detections(self, detections):
     self.detections = detections
 
-  def get_middle_detection(self):
-    keys = self.detections.keys()
-    middle_key_idx = len(self.detections.keys()) // 2
-    return self.detections[keys[middle_key_idx]]
-
+  def set_actions(self, actions):
+    self.actions = actions
 

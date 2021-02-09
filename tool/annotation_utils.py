@@ -1,8 +1,15 @@
 import ast
 import cv2
-from tool.video import Video
+from tool.video_utils import Video
 import numpy as np
 
+FRAME = 'frame'
+ACTION = 'action'
+OBJECT = 'object'
+SCORE = 'score'
+BBOX = 'bbox'
+TYPE = 'type'
+ID = 'id'
 
 def parse_annotations(annotation_file):
   annotations = []
@@ -20,7 +27,7 @@ def middle_point(x1, y1, x2, y2):
 
 
 def get_middle_annotation_points(annotation):
-  x1, y1, x2, y2 = annotation['bbox']
+  x1, y1, x2, y2 = annotation[BBOX]
   mid_x, mid_y = middle_point(x1, y1, x2, y2)
   return Point(mid_x, mid_y)
 
@@ -59,11 +66,11 @@ def whole_in_box(it, box):
 
 
 def get_annotation_by_object_id(anns, id):
-  return [ann for ann in anns if ann['object']['id'] == id]
+  return [ann for ann in anns if ann[OBJECT][ID] == id]
 
 
 def get_annotation_by_frame(anns, frame):
-  return [ann for ann in anns if ann['frame'] == frame]
+  return [ann for ann in anns if ann[FRAME] == frame]
 
 
 class Point: 
@@ -129,8 +136,8 @@ def reconstruct_video_event(video_name, output_video_name, annotations):
   fourcc = cv2.VideoWriter_fourcc(*'mp4v')
   out = cv2.VideoWriter(output_video_name, fourcc, fps, (width, height))
 
-  start = annotations[0]['frame']
-  end = annotations[-1]['frame']
+  start = annotations[0][FRAME]
+  end = annotations[-1][FRAME]
 
   video.set(cv2.CAP_PROP_POS_FRAMES, start)
 
@@ -141,9 +148,9 @@ def reconstruct_video_event(video_name, output_video_name, annotations):
       break
 
     annotation = annotations[ann_counter]
-    if annotation['frame'] == frame:
-      id_and_class_name = str(annotation["object"]["id"]) + ". " + annotation["object"]["type"]
-      x1, y1, x2, y2 = annotation['bbox']
+    if annotation[FRAME] == frame:
+      id_and_class_name = str(annotation[OBJECT][ID]) + ". " + annotation[OBJECT][TYPE]
+      x1, y1, x2, y2 = annotation[BBOX]
       cv2.putText(img, id_and_class_name, (x1-20, y1), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (255, 0, 0), 2)
       cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
       ann_counter += 1
@@ -152,3 +159,4 @@ def reconstruct_video_event(video_name, output_video_name, annotations):
 
   out.release()
   video.release()
+

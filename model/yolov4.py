@@ -2,6 +2,7 @@ import cv2
 from tool.utils import *
 from tool.torch_utils import *
 from tool.darknet2pytorch import Darknet
+from tool.detection_utils import *
 
 class YOLOv4:
 
@@ -13,7 +14,7 @@ class YOLOv4:
     self.jump_every = jump_every
 
   def __call__(self, sequence, conf_thres=0.4, nms_thres=0.6):
-    detections = dict()
+    sequence_detections = dict()
     for (idx, frame) in enumerate(sequence.frames):
       frame_number = sequence.frames_idx + idx
       if self.jump_every and frame_number % self.jump_every == 0:
@@ -21,17 +22,25 @@ class YOLOv4:
       elif self.jump_until and frame_number % self.jump_until != 0:
         continue
 
-      frame_height, frame_width = frame.shape[:2]
       sized = cv2.resize(frame, (self.model.width, self.model.height))
       sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
     
       result = do_detect(self.model, sized, conf_thres, nms_thres, self.use_cuda)[0]
-      dets = dict()
-      dets['boxes'] = [get_image_positions((det[0], det[1], det[2], det[3]), frame_height, frame_width) for det in result]
-      dets['classes'] = [det[-1] for det in result]
-      dets['scores'] = [det[-2] for det in result]
-      detections[idx] = dets
-    sequence.set_detections(detections)
+      
+      frame_detections_struct = list()
+      frame_height, frame_width = frame.shape[:2]
+      for detection in result:
+        detection_struct = dict()
+        x1, y1, x2, y2 = detection[:4]
+        detection_struct[BOX] = get_image_positions(
+          (x1, y1, x2, y2), frame_height, frame_width)
+        detection_struct[OBJECT_TYPE] = self.class_names[detection[-1]]
+        detection_struct[OBJECT_SCORE] = detection[-2]
+        frame_detections_struct.append(detection_struct)
+
+      sequence_detections[idx] = frame_detections_struct
+
+    sequence.set_detections(sequence_detections)
     return sequence
 
   def _load_model(self, weight_file, cfg_file, use_cuda):
