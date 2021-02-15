@@ -12,6 +12,7 @@ ACTIONS = 'actions'
 OBJECT_ID = 'object_id'
 BOX = 'box'
 OBJECT_SCORE = 'object_score'
+OBJECT_DIRECTION_VECTOR = 'object_direction_vector'
 OBJECT_TYPE = 'object_type'
 PERSON_ACTION = 'person_action'
 
@@ -50,11 +51,16 @@ def get_detections_by_types(sequence_detections, types):
 
 def get_middle_detections(detections):
   middle_key = get_middle_key(detections.keys())
-  return detections[middle_key]
+  if middle_key < 0:
+    return ()
+  else:
+    return detections[middle_key]
 
 
 def get_middle_key(keys):
   keys = list(keys)
+  if len(keys) == 0:
+    return -1
   middle_key_idx = len(keys) // 2
   return keys[middle_key_idx]
 
@@ -62,3 +68,4 @@ def get_middle_key(keys):
 def get_middle_detections_boxes(detections):
   middle_detection = get_middle_detections(detections)
   return middle_detection[BOXES]
+

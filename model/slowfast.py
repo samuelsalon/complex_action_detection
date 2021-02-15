@@ -25,6 +25,9 @@ class SlowFast:
     person_detections = get_detections_by_types(detections, ("person"))
     middle_person_detection = get_middle_detections(person_detections)
 
+    if len(middle_person_detection) == 0:
+      return sequence
+
     bboxes = get_detection_boxes(middle_person_detection)
     bboxes = torch.FloatTensor(bboxes).cuda()
     
@@ -141,3 +144,4 @@ class SlowFast:
 
     sequence.set_detections(sequence_action_detections)
     return sequence
+

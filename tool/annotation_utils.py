@@ -3,6 +3,8 @@ import cv2
 from tool.video_utils import Video
 import numpy as np
 
+
+DIRECTION_VECTOR = 'direction_vector'
 FRAME = 'frame'
 ACTION = 'action'
 OBJECT = 'object'
@@ -10,6 +12,7 @@ SCORE = 'score'
 BBOX = 'bbox'
 TYPE = 'type'
 ID = 'id'
+
 
 def parse_annotations(annotation_file):
   annotations = []
@@ -159,4 +162,3 @@ def reconstruct_video_event(video_name, output_video_name, annotations):
 
   out.release()
   video.release()
-

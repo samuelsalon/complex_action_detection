@@ -16,6 +16,52 @@ BGR_BLUE = (255, 0, 0)
 BGR_WHITE = (255, 255, 255)
 BGR_BLACK = (0, 0, 0)
 
+def vizualize_detection(frame, detection):
+  x1, y1, x2, y2 = detection[BOX]
+  w, h = int(x2-x1), int(y2-y1)
+
+  object_score = detection[OBJECT_SCORE]
+  object_id = detection[OBJECT_ID]
+  object_type = detection[OBJECT_TYPE]
+  object_direction_vector = detection[OBJECT_DIRECTION_VECTOR]
+
+  # draw bounding box
+  cv2.rectangle(frame, (x1, y1),(x2, y2), BGR_BLUE, 2)
+  # draw object info label
+  object_label = "Object ID: {}, Object type: {}".format(object_id, object_type)
+  cv2.putText(frame, object_label, (x1, y1-10), 
+    cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
+  # draw action info label
+  if PERSON_ACTION in detection:
+    action_label = "Actions: {}".format(str(detection[PERSON_ACTION]))
+    cv2.putText(frame, action_label, (x1, y1-30), 
+      cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
+
+  # draw direction      
+  x_dir, y_dir = object_direction_vector
+  if object_type == "person":
+    middle_point = int(x1 + (w/2)), int(y1 + h)
+  else:
+    middle_point = int(x1 + (w/2)), int(y1 + (h/2))
+  direction_point = x_dir + middle_point[0], y_dir + middle_point[1]
+  
+  cv2.line(frame, middle_point, direction_point, BGR_GREEN, 2)
+  cv2.circle(frame, direction_point, 5, BGR_RED, -1)
+  cv2.putText(frame, str(object_id), (x_dir, y_dir), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
+
+
+def get_annotation_text(detection):
+  annotation_text = {}
+  annotation_text[ID] = detection[OBJECT_ID]
+  annotation_text[TYPE] = detection[OBJECT_TYPE]
+  annotation_text[SCORE] = detection[OBJECT_SCORE]
+  annotation_text[BBOX] = detection[BOX] 
+  annotation_text[DIRECTION_VECTOR] = detection[OBJECT_DIRECTION_VECTOR]
+  if PERSON_ACTION in detection:
+    annotation_text[ACTION] = detection[PERSON_ACTION]
+  return annotation_text
+
+
 def parse_arguments():
   parser = argparse.ArgumentParser('Program used to detect and track objects in video')
   parser.add_argument('--video', '-v', default="/content/video.mp4", help="Input path to video")
@@ -26,6 +72,7 @@ def parse_arguments():
   parser.add_argument('--jump_every', '-je', default=None, type=int, help="Jump every frame number divisible by this number")
 
   return parser.parse_args()
+
 
 def main(args):
   detection_weights = './checkpoints/yolov4.weights'
@@ -56,68 +103,47 @@ def main(args):
   elif not jump_every and not jump_until:
     jump_until = int(video_fps / 6)
 
+  annotation_file = open(args.ann_file_output, mode="w")
+  
   detection_model = YOLOv4(detection_weights, detection_cfg, jump_until, jump_every)
   tracker_model = DeepSort(model_filename, max_cosine_distance, nn_budget)
   action_model = SlowFast(action_cfg)
 
-  names = detection_model.class_names
-
-
   start_time = time.time()
-
-  annotation_file = open(args.ann_file_output, mode="w")
   ret = True
   while ret:
 
-    ret, sequence = video_manager.next()
+    ret, frames_sequence = video_manager.next()
 
     t0 = time.time()
-    detected_sequence = detection_model(sequence)
+    detected_sequence = detection_model(frames_sequence)
     tracked_sequence = tracker_model(detected_sequence)
     action_sequence = action_model(detected_sequence)
-    
-    for (idx, frame) in enumerate(action_sequence.frames):
-      annotation_text = {}
-      if idx in action_sequence.detections.keys():
-        detections = action_sequence.detections[idx]
+  
+    write_annotation = True
+    for (sequence_frame_idx, frame) in enumerate(action_sequence.frames):
+      if sequence_frame_idx in action_sequence.detections.keys():
+        write_annotation = True
+        detections = action_sequence.detections[sequence_frame_idx]
+      else:
+        write_annotation = False
 
+      annotation = []
       for detection in detections:
-        x1, y1, x2, y2 = detection[BOX]
-        object_score = detection[OBJECT_SCORE]
-        object_id = detection[OBJECT_ID]
-        object_type = detection[OBJECT_TYPE]
-
-        annotation_text[FRAME] = action_sequence.frames_idx + idx
-        if PERSON_ACTION in detection:
-          annotation_text[OBJECT] = { 
-            TYPE : object_type, 
-            ID : object_id,
-            SCORE : object_score,
-            ACTION : detection[PERSON_ACTION]
-          }
-        else:
-          annotation_text[OBJECT] = { 
-            TYPE : object_type, 
-            ID : object_id,
-            SCORE : object_score
-          }
-        annotation_text[BBOX] = (x1, y1, x2, y2)       
-        annotation_file.write(str(annotation_text) + "\n")
-
-        cv2.rectangle(frame, (x1, y1),(x2, y2), BGR_BLUE, 2)
-        object_label = "Object ID: {}, Object type: {}".format(object_id, object_type)
-        cv2.putText(frame, object_label, (x1, y1), 
-          cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
-        if PERSON_ACTION in detection:
-          action_label = "Actions: {}".format(str(detection[PERSON_ACTION]))
-          cv2.putText(frame, action_label, (x1, y1-20), 
-            cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
+        vizualize_detection(frame, detection)
+        if not write_annotation:
+          continue
+        annotation_text = get_annotation_text(detection)
+        annotation.append(annotation_text)
       
       video_manager.write(frame)
 
+      if write_annotation:
+        frame_number = action_sequence.frames_idx + sequence_frame_idx
+        annotation_file.write(str({frame_number:annotation}) + "\n")
+
     t1 = time.time()
     print("""FRAME: {}/{}  FPS: {:.2f}""".format(action_sequence.frames_idx, video_manager.video.frames_count, video_manager.clip_sequence_size / (t1 - t0)))
-
 
   video_manager.release()
   annotation_file.close()

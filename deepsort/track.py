@@ -64,8 +64,9 @@ class Track:
     """
 
     def __init__(self, mean, covariance, track_id, n_init, max_age,
-                 feature=None, class_idx=None, score=None):
+                 feature=None, class_idx=None, score=None, trajectory_len=5):
         self.mean = mean
+
         self.covariance = covariance
         self.track_id = track_id
         self.hits = 1
@@ -82,6 +83,12 @@ class Track:
         self.class_idx = class_idx
         self.score = score
 
+        self.trajectory = []
+        self.trajectory_len = trajectory_len
+        self.direction_vector = 0, 0
+        self.update_direction_vector()
+
+
     def to_tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,
         width, height)`.
@@ -97,6 +104,7 @@ class Track:
         ret[:2] -= ret[2:] / 2
         return ret
 
+
     def to_tlbr(self):
         """Get current position in bounding box format `(min x, miny, max x,
         max y)`.
@@ -110,6 +118,7 @@ class Track:
         ret = self.to_tlwh()
         ret[2:] = ret[:2] + ret[2:]
         return ret
+
 
     def predict(self, kf):
         """Propagate the state distribution to the current time step using a
@@ -125,6 +134,7 @@ class Track:
         self.age += 1
         self.time_since_update += 1
 
+
     def update(self, kf, detection):
         """Perform Kalman filter measurement update step and update the feature
         cache.
@@ -139,12 +149,26 @@ class Track:
         """
         self.mean, self.covariance = kf.update(
             self.mean, self.covariance, detection.to_xyah())
+        self.update_direction_vector()
         self.features.append(detection.feature)
+        self.score = detection.confidence
 
         self.hits += 1
         self.time_since_update = 0
         if self.state == TrackState.Tentative and self.hits >= self._n_init:
             self.state = TrackState.Confirmed
+
+
+    def update_direction_vector(self):
+      x, y, w, h = self.to_tlwh()
+      middle = int(x+w/2), int(y+h/2)
+      self.trajectory.append(middle)
+      xa, ya = self.trajectory[0]
+      xb, yb = self.trajectory[-1]
+      self.direction_vector = int(xb - xa), int(yb - ya)
+      if len(self.trajectory) > self.trajectory_len:
+        self.trajectory.pop(0)
+      
 
     def mark_missed(self):
         """Mark this track as missed (no association at the current time step).
@@ -154,15 +178,19 @@ class Track:
         elif self.time_since_update > self._max_age:
             self.state = TrackState.Deleted
 
+
     def is_tentative(self):
         """Returns True if this track is tentative (unconfirmed).
         """
         return self.state == TrackState.Tentative
 
+
     def is_confirmed(self):
         """Returns True if this track is confirmed."""
         return self.state == TrackState.Confirmed
 
+
     def is_deleted(self):
         """Returns True if this track is dead and should be deleted."""
         return self.state == TrackState.Deleted
+
