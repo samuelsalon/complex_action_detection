@@ -20,26 +20,26 @@ def vizualize_detection(frame, detection):
   x1, y1, x2, y2 = detection[BOX]
   w, h = int(x2-x1), int(y2-y1)
 
-  object_score = detection[OBJECT_SCORE]
-  object_id = detection[OBJECT_ID]
-  object_type = detection[OBJECT_TYPE]
-  object_direction_vector = detection[OBJECT_DIRECTION_VECTOR]
+  score = detection[DETECTION_SCORE]
+  id = detection[ID]
+  type = detection[TYPE]
+  direction_vector = detection[DIRECTION_VECTOR]
 
   # draw bounding box
   cv2.rectangle(frame, (x1, y1),(x2, y2), BGR_BLUE, 2)
   # draw object info label
-  object_label = "Object ID: {}, Object type: {}".format(object_id, object_type)
+  object_label = "Object ID: {}, Object type: {}".format(id, type)
   cv2.putText(frame, object_label, (x1, y1-10), 
     cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
   # draw action info label
-  if PERSON_ACTION in detection:
-    action_label = "Actions: {}".format(str(detection[PERSON_ACTION]))
+  if ACTION in detection:
+    action_label = "Actions: {}".format(str(detection[ACTION]))
     cv2.putText(frame, action_label, (x1, y1-30), 
       cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
 
   # draw direction      
-  x_dir, y_dir = object_direction_vector
-  if object_type == "person":
+  x_dir, y_dir = direction_vector
+  if type == "person":
     middle_point = int(x1 + (w/2)), int(y1 + h)
   else:
     middle_point = int(x1 + (w/2)), int(y1 + (h/2))
@@ -47,18 +47,19 @@ def vizualize_detection(frame, detection):
   
   cv2.line(frame, middle_point, direction_point, BGR_GREEN, 2)
   cv2.circle(frame, direction_point, 5, BGR_RED, -1)
-  cv2.putText(frame, str(object_id), (x_dir, y_dir), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
+  cv2.putText(frame, str(id), (x_dir, y_dir), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
 
 
 def get_annotation_text(detection):
   annotation_text = {}
-  annotation_text[ID] = detection[OBJECT_ID]
-  annotation_text[TYPE] = detection[OBJECT_TYPE]
-  annotation_text[SCORE] = detection[OBJECT_SCORE]
-  annotation_text[BBOX] = detection[BOX] 
-  annotation_text[DIRECTION_VECTOR] = detection[OBJECT_DIRECTION_VECTOR]
-  if PERSON_ACTION in detection:
-    annotation_text[ACTION] = detection[PERSON_ACTION]
+  annotation_text[ID] = detection[ID]
+  annotation_text[BOX] = detection[BOX] 
+  annotation_text[TYPE] = detection[TYPE]
+  annotation_text[DETECTION_SCORE] = detection[DETECTION_SCORE]
+  annotation_text[DIRECTION_VECTOR] = detection[DIRECTION_VECTOR]
+  if ACTION in detection:
+    annotation_text[ACTION] = detection[ACTION]
+    annotation_text[ACTION_SCORE] = detection[ACTION_SCORE]
   return annotation_text
 
 
@@ -128,19 +129,17 @@ def main(args):
       else:
         write_annotation = False
 
-      annotation = []
       for detection in detections:
         vizualize_detection(frame, detection)
-        if not write_annotation:
-          continue
-        annotation_text = get_annotation_text(detection)
-        annotation.append(annotation_text)
-      
       video_manager.write(frame)
 
       if write_annotation:
         frame_number = action_sequence.frames_idx + sequence_frame_idx
-        annotation_file.write(str({frame_number:annotation}) + "\n")
+        frame_detections_annotation = {
+          FRAME : frame_number,
+          DETECTIONS : detections
+        }
+        annotation_file.write(str(frame_detections_annotation) + "\n")
 
     t1 = time.time()
     print("""FRAME: {}/{}  FPS: {:.2f}""".format(action_sequence.frames_idx, video_manager.video.frames_count, video_manager.clip_sequence_size / (t1 - t0)))
@@ -166,3 +165,4 @@ def main(args):
 if __name__ == "__main__":
   args = parse_arguments()
   main(args)
+

@@ -34,8 +34,8 @@ class YOLOv4:
         x1, y1, x2, y2 = detection[:4]
         detection_struct[BOX] = get_image_positions(
           (x1, y1, x2, y2), frame_height, frame_width)
-        detection_struct[OBJECT_TYPE] = self.class_names[detection[-1]]
-        detection_struct[OBJECT_SCORE] = detection[-2]
+        detection_struct[TYPE] = self.class_names[detection[-1]]
+        detection_struct[DETECTION_SCORE] = detection[-2]
         frame_detections_struct.append(detection_struct)
 
       sequence_detections[idx] = frame_detections_struct
@@ -49,4 +49,3 @@ class YOLOv4:
     if use_cuda:
       model.cuda()
     return model
-

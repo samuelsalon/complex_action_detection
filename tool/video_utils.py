@@ -1,5 +1,4 @@
 import cv2
-from tool.detection_utils import *
 
 class Video(cv2.VideoCapture):
   
@@ -66,4 +65,3 @@ class Sequence:
 
   def set_actions(self, actions):
     self.actions = actions
-

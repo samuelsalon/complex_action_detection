@@ -3,18 +3,17 @@ from slowfast.utils.misc import get_class_names
 
 ACTION_TYPES, _, _ = get_class_names('./data/label_map_ava.json', None, None)
 ALL_TYPES = load_class_names('./data/coco.names')
-IDS = 'ids'
-BOXES = 'boxes'
-SCORES = 'scores'
-TYPES = 'types'
-ACTIONS = 'actions'
 
-OBJECT_ID = 'object_id'
+FRAME = 'frame'
+DETECTIONS = 'detections'
+
+ID = 'id'
 BOX = 'box'
-OBJECT_SCORE = 'object_score'
-OBJECT_DIRECTION_VECTOR = 'object_direction_vector'
-OBJECT_TYPE = 'object_type'
-PERSON_ACTION = 'person_action'
+DETECTION_SCORE = 'detection_score'
+DIRECTION_VECTOR = 'direction_vector'
+TYPE = 'type'
+ACTION = 'person_action'
+ACTION_SCORE = 'action_score'
 
 def get_detection_ids(detection):
   boxes = [one[ID] for one in detection]
@@ -25,11 +24,11 @@ def get_detection_boxes(detection):
   return boxes
 
 def get_detection_scores(detection):
-  scores = [one[OBJECT_SCORE] for one in detection]
+  scores = [one[DETECTION_SCORE] for one in detection]
   return scores
 
 def get_detection_types(detection):
-  types = [one[OBJECT_TYPE] for one in detection]
+  types = [one[TYPE] for one in detection]
   return types
 
 def get_detections_by_types(sequence_detections, types):
@@ -41,7 +40,7 @@ def get_detections_by_types(sequence_detections, types):
     frame_detections = detections[key]
 
     for detection in frame_detections:
-      if detection[OBJECT_TYPE] in types:
+      if detection[TYPE] in types:
         types_detections.append(detection)
     
     detections[key] = types_detections
@@ -68,4 +67,3 @@ def get_middle_key(keys):
 def get_middle_detections_boxes(detections):
   middle_detection = get_middle_detections(detections)
   return middle_detection[BOXES]
-

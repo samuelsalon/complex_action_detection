@@ -123,25 +123,28 @@ class SlowFast:
     sequence_detections = detections.copy()
     middle_key = get_middle_key(sequence_detections.keys())
     
-    ids_and_actions = dict()
+    ids_and_actions_detections = dict()
     for detection in sequence_detections[middle_key]:
       try:
         index = bboxes.index(tuple(detection[BOX]))
       except:
         continue
-      ids_and_actions[detection[OBJECT_ID]] = action_types_names[index]
+      ids_and_actions_detections[detection[ID]] = {
+        ACTION : action_types_names[index],
+        ACTION_SCORE : scores[index]
+        }
 
     sequence_action_detections = dict()    
     for key in sequence_detections.keys():
       
       action_detections = list()
       for detection in sequence_detections[key]:
-        if detection[OBJECT_ID] in ids_and_actions.keys():
-          detection[PERSON_ACTION] = ids_and_actions[detection[OBJECT_ID]]
+        if detection[ID] in ids_and_actions_detections.keys():
+          detection[ACTION] = ids_and_actions_detections[detection[ID]][ACTION]
+          detection[ACTION_SCORE] = ids_and_actions_detections[detection[ID]][ACTION_SCORE]
         action_detections.append(detection)
     
       sequence_action_detections[key] = action_detections
 
     sequence.set_detections(sequence_action_detections)
     return sequence
-

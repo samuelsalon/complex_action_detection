@@ -40,11 +40,11 @@ class DeepSort:
           continue 
 
         detection = dict()
-        detection[OBJECT_ID] = track.track_id
+        detection[ID] = track.track_id
         detection[BOX] = ([int(i) for i in track.to_tlbr()])
-        detection[OBJECT_TYPE] = track.class_idx
-        detection[OBJECT_SCORE] = track.score
-        detection[OBJECT_DIRECTION_VECTOR] = track.direction_vector
+        detection[TYPE] = track.class_idx
+        detection[DETECTION_SCORE] = track.score
+        detection[DIRECTION_VECTOR] = track.direction_vector
 
         frame_detections.append(detection)
 
@@ -52,3 +52,4 @@ class DeepSort:
     
     sequence.set_detections(tracked_detections)
     return sequence
+
