@@ -16,9 +16,20 @@ BGR_BLUE = (255, 0, 0)
 BGR_WHITE = (255, 255, 255)
 BGR_BLACK = (0, 0, 0)
 
+POLYGON = (
+  (390, 150), 
+  (550, 150),
+  (730, 180), 
+  (620, 420), 
+  (180, 360)
+)
+
+def draw_polygon(frame, polygon):
+  for idx in range(len(polygon)):
+    cv2.line(frame, polygon[idx-1], polygon[idx], BGR_BLACK, 2)
+
 def vizualize_detection(frame, detection):
   x1, y1, x2, y2 = detection[BOX]
-  w, h = int(x2-x1), int(y2-y1)
 
   score = detection[DETECTION_SCORE]
   id = detection[ID]
@@ -39,28 +50,12 @@ def vizualize_detection(frame, detection):
 
   # draw direction      
   x_dir, y_dir = direction_vector
-  if type == "person":
-    middle_point = int(x1 + (w/2)), int(y1 + h)
-  else:
-    middle_point = int(x1 + (w/2)), int(y1 + (h/2))
+  middle_point = get_middle_detection_point(detection, type=="person")
   direction_point = x_dir + middle_point[0], y_dir + middle_point[1]
   
   cv2.line(frame, middle_point, direction_point, BGR_GREEN, 2)
   cv2.circle(frame, direction_point, 5, BGR_RED, -1)
   cv2.putText(frame, str(id), (x_dir, y_dir), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
-
-
-def get_annotation_text(detection):
-  annotation_text = {}
-  annotation_text[ID] = detection[ID]
-  annotation_text[BOX] = detection[BOX] 
-  annotation_text[TYPE] = detection[TYPE]
-  annotation_text[DETECTION_SCORE] = detection[DETECTION_SCORE]
-  annotation_text[DIRECTION_VECTOR] = detection[DIRECTION_VECTOR]
-  if ACTION in detection:
-    annotation_text[ACTION] = detection[ACTION]
-    annotation_text[ACTION_SCORE] = detection[ACTION_SCORE]
-  return annotation_text
 
 
 def parse_arguments():
@@ -73,6 +68,23 @@ def parse_arguments():
   parser.add_argument('--jump_every', '-je', default=None, type=int, help="Jump every frame number divisible by this number")
 
   return parser.parse_args()
+
+def add_action(detection, action):
+  if ACTION in detection:
+    try:
+      detection[ACTION].index(action)
+    except:
+      detection[ACTION].append(action)
+  else:
+    detection[ACTION] = (action)
+
+
+def del_action(detection, action):
+  try:
+    index = detection[ACTION].index(action)
+    detection[ACTION].pop(index)
+  except:
+    pass
 
 
 def main(args):
@@ -128,9 +140,20 @@ def main(args):
         detections = action_sequence.detections[sequence_frame_idx]
       else:
         write_annotation = False
+      
+      draw_polygon(frame, POLYGON)
 
       for detection in detections:
+
+        action = "IS IN DEFINED POLYGON"
+        point = get_middle_detection_point(detection, detection[TYPE] =="person")
+        if is_inside_polygon(POLYGON, point):
+          add_action(detection, action)
+        else:
+          del_action(detection, action)
+
         vizualize_detection(frame, detection)
+
       video_manager.write(frame)
 
       if write_annotation:
@@ -165,4 +188,3 @@ def main(args):
 if __name__ == "__main__":
   args = parse_arguments()
   main(args)
-

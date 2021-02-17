@@ -17,8 +17,12 @@ def parse_annotations(annotation_file):
   return annotations
 
 
-def middle_point(x1, y1, x2, y2):
-  return int((x1 + x2) / 2), int((y1 + y2) / 2)
+def middle_point(x1, y1, x2, y2, is_person=False):
+  w, h = int(x2-x1), int(y2-y1)
+  if is_person:
+    return int(x1 + (w/2)), int(y1 + h)
+  else:
+    return int(x1 + (w/2)), int(y1 + (h/2))
 
 
 def get_annotation_by_object_id(anns, id):
@@ -39,10 +43,9 @@ def get_annotation_by_object_id(anns, id):
   return new_anns
 
 
-def get_middle_detection_points(detection):
+def get_middle_detection_point(detection, is_person=False):
   x1, y1, x2, y2 = detection[BOX]
-  mid_x, mid_y = middle_point(x1, y1, x2, y2)
-  return Point(mid_x, mid_y)
+  return middle_point(x1, y1, x2, y2, is_person)
 
 
 def image_cut(img, x1, y1, x2, y2):
@@ -82,50 +85,48 @@ def get_annotation_by_frame(anns, frame):
   return [ann for ann in anns if ann[FRAME] == frame]
 
 
-class Point: 
-  def __init__(self, x, y): 
-    self.x = x 
-    self.y = y 
-
-
-def pass_trought_line(line, annotations):
+def pass_trought_line(line, annotations, detection_count=60):
   if len(line) != 4:
     raise ValueError("ERROR: line argument should be len 4 but is " + len(line))
-  p1, q1 = Point(line[0], line[1]), Point(line[2], line[3]) 
-  intersected_annotations = []
+  p1, q1 = (line[0], line[1]), (line[2], line[3]) 
+  detection_index = -1
   for idx in range(len(annotations) - 1):
     detection = annotations[idx][DETECTIONS][0]
     detection_next = annotations[idx+1][DETECTIONS][0]
     p2 = get_middle_detection_points(detection)
     q2 = get_middle_detection_points(detection_next)
     if intersect(p1, q1, p2, q2):
-      intersected_annotations.append((annotations[idx], annotations[idx + 1]))
-  return intersected_annotations
+      detection_index = idx
+      break
+  
+  start = max(detection_index-detection_count//2, 0)
+  end = min(detection_index+detection_count//2, len(annotations))
+  pass_trought_line_detections = []
+  for idx in range(start, end):
+    pass_trought_line_detections.append(annotations[idx])
+  return pass_trought_line_detections
 
 
 def on_segment(p, q, r): 
-    if ((q.x <= max(p.x, r.x)) and 
-        (q.x >= min(p.x, r.x)) and 
-        (q.y <= max(p.y, r.y)) and 
-        (q.y >= min(p.y, r.y))): 
+    if ((q[0] <= max(p[0], r[0])) and 
+        (q[0] >= min(p[0], r[0])) and 
+        (q[1] <= max(p[1], r[1])) and 
+        (q[1] >= min(p[1], r[1]))): 
         return True
     return False
 
   
 def orientation(p, q, r): 
-    val = ((float(q.y - p.y) * 
-                (r.x - q.x)) - 
-          (float(q.x - p.x) * 
-                (r.y - q.y))) 
-    if (val > 0): 
-        return 1
-    elif (val < 0): 
-        return 2
-    else: 
-        return 0
+  val = ((float(q[1] - p[1]) * (r[0] - q[0])) - (float(q[0] - p[0]) * (r[1] - q[1]))) 
+  if (val > 0): 
+    return 1
+  elif (val < 0): 
+    return 2
+  else: 
+    return 0
 
 
-def intersect(p1,q1,p2,q2): 
+def intersect(p1, q1, p2, q2): 
     o1 = orientation(p1, q1, p2) 
     o2 = orientation(p1, q1, q2) 
     o3 = orientation(p2, q2, p1) 
@@ -143,19 +144,19 @@ def intersect(p1,q1,p2,q2):
     return False
 
 
-def is_inside_polygon(points:list, p:Point) -> bool:
-  n = len(points)
-  if n < 3:
+def is_inside_polygon(polygon_points, point) -> bool:
+  polygon_points_count = len(polygon_points)
+  if polygon_points_count < 3:
       return False
-  extreme = (INT_MAX, p.y)
+  extreme = (INT_MAX, point[1])
   count = i = 0
   while True:
-    next = (i + 1) % n
-    point = Point(points[i][0], points[i][1])
-    next_point = Point(points[next][0], points[next][1])
-    if (doIntersect(point, next_point, p, extreme)):
-      if orientation(point, p, next_point) == 0:
-        return onSegment(point, p, next_point)
+    next = (i + 1) % polygon_points_count
+    polygon_point = polygon_points[i]
+    next_polygon_point = polygon_points[next]
+    if (intersect(polygon_point, next_polygon_point, point, extreme)):
+      if orientation(polygon_point, point, next_polygon_point) == 0:
+        return on_segment(polygon_point, point, next_polygon_point)
       count += 1
     i = next
     if (i == 0):
@@ -219,8 +220,8 @@ def vizualize_detection(frame, detection):
       cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
 
   # draw direction      
-  x_dir, y_dir = object_direction_vector
-  if object_type == "person":
+  x_dir, y_dir = direction_vector
+  if type == "person":
     middle_point = int(x1 + (w/2)), int(y1 + h)
   else:
     middle_point = int(x1 + (w/2)), int(y1 + (h/2))
@@ -228,4 +229,5 @@ def vizualize_detection(frame, detection):
   
   cv2.line(frame, middle_point, direction_point, (0, 255, 0), 2)
   cv2.circle(frame, direction_point, 5, (255, 0, 0), -1)
-  cv2.putText(frame, str(object_id), (x_dir, y_dir), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+  cv2.putText(frame, str(id), (x_dir, y_dir), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+
