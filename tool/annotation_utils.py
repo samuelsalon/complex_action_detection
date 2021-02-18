@@ -1,7 +1,13 @@
 import ast
 import cv2
 from tool.video_utils import Video
-from tool.detection_utils import *
+from tool.detection_utils import FRAME
+from tool.detection_utils import DETECTIONS
+from tool.detection_utils import BOX
+from tool.detection_utils import DETECTION_SCORE
+from tool.detection_utils import DIRECTION_VECTOR
+from tool.detection_utils import ID
+from tool.detection_utils import ACTION
 import numpy as np
 
 INT_MAX = 10000
@@ -230,4 +236,3 @@ def vizualize_detection(frame, detection):
   cv2.line(frame, middle_point, direction_point, (0, 255, 0), 2)
   cv2.circle(frame, direction_point, 5, (255, 0, 0), -1)
   cv2.putText(frame, str(id), (x_dir, y_dir), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
-

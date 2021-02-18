@@ -10,11 +10,15 @@ import cv2
 import argparse
 import time
 
+DATECTIONS_PER_SECOND = 6
+
 BGR_RED = (0, 0, 255)
 BGR_GREEN = (0, 255, 0)
 BGR_BLUE = (255, 0, 0)
 BGR_WHITE = (255, 255, 255)
 BGR_BLACK = (0, 0, 0)
+
+POLYGON_VIDEO = ((700, 150), (900, 150), (950, 900), (800, 880), (750, 800))
 
 POLYGON = (
   (390, 150), 
@@ -28,6 +32,7 @@ def draw_polygon(frame, polygon):
   for idx in range(len(polygon)):
     cv2.line(frame, polygon[idx-1], polygon[idx], BGR_BLACK, 2)
 
+
 def vizualize_detection(frame, detection):
   x1, y1, x2, y2 = detection[BOX]
 
@@ -35,11 +40,12 @@ def vizualize_detection(frame, detection):
   id = detection[ID]
   type = detection[TYPE]
   direction_vector = detection[DIRECTION_VECTOR]
+  position_change = detection[POSITION_CHANGE]
 
   # draw bounding box
   cv2.rectangle(frame, (x1, y1),(x2, y2), BGR_BLUE, 2)
   # draw object info label
-  object_label = "Object ID: {}, Object type: {}".format(id, type)
+  object_label = "ID: {}, Type: {}".format(id, type)
   cv2.putText(frame, object_label, (x1, y1-10), 
     cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
   # draw action info label
@@ -55,7 +61,9 @@ def vizualize_detection(frame, detection):
   
   cv2.line(frame, middle_point, direction_point, BGR_GREEN, 2)
   cv2.circle(frame, direction_point, 5, BGR_RED, -1)
-  cv2.putText(frame, str(id), (x_dir, y_dir), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
+
+  position_change_label = "{:.4f}".format(position_change)
+  cv2.putText(frame, str(position_change_label), middle_point, cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
 
 
 def parse_arguments():
@@ -66,8 +74,8 @@ def parse_arguments():
   parser.add_argument('--ann_file_output', '-afo', default="./data/annotation_file.txt", help="Output annotation file")
   parser.add_argument('--jump_until', '-ju', default=None, type=int, help="Jump until frame number divisible by this number")
   parser.add_argument('--jump_every', '-je', default=None, type=int, help="Jump every frame number divisible by this number")
-
   return parser.parse_args()
+
 
 def add_action(detection, action):
   if ACTION in detection:
@@ -114,7 +122,7 @@ def main(args):
   elif jump_every and jump_every < 2:
     raise ValueError("--jump_every value have to be bigger that 1")
   elif not jump_every and not jump_until:
-    jump_until = int(video_fps / 6)
+    jump_until = int(video_fps / DATECTIONS_PER_SECOND)
 
   annotation_file = open(args.ann_file_output, mode="w")
   
@@ -145,7 +153,7 @@ def main(args):
 
       for detection in detections:
 
-        action = "IS IN DEFINED POLYGON"
+        action = "in polygon"
         point = get_middle_detection_point(detection, detection[TYPE] =="person")
         if is_inside_polygon(POLYGON, point):
           add_action(detection, action)
@@ -188,3 +196,4 @@ def main(args):
 if __name__ == "__main__":
   args = parse_arguments()
   main(args)
+

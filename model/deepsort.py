@@ -33,7 +33,6 @@ class DeepSort:
       self.tracker.predict()
       self.tracker.update(detections)
 
-
       frame_detections = list()
       for track in self.tracker.tracks:
         if not track.is_confirmed() or track.time_since_update > 1:
@@ -45,6 +44,7 @@ class DeepSort:
         detection[TYPE] = track.class_idx
         detection[DETECTION_SCORE] = track.score
         detection[DIRECTION_VECTOR] = track.direction_vector
+        detection[POSITION_CHANGE] = track.position_change
 
         frame_detections.append(detection)
 
@@ -52,4 +52,3 @@ class DeepSort:
     
     sequence.set_detections(tracked_detections)
     return sequence
-

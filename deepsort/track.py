@@ -1,5 +1,5 @@
 # vim: expandtab:ts=4:sw=4
-
+import math
 
 class TrackState:
     """
@@ -86,6 +86,7 @@ class Track:
         self.trajectory = []
         self.trajectory_len = trajectory_len
         self.direction_vector = 0, 0
+        self.position_change = 0.0
         self.update_direction_vector()
 
 
@@ -150,6 +151,7 @@ class Track:
         self.mean, self.covariance = kf.update(
             self.mean, self.covariance, detection.to_xyah())
         self.update_direction_vector()
+        self.update_position_change()
         self.features.append(detection.feature)
         self.score = detection.confidence
 
@@ -169,6 +171,13 @@ class Track:
       if len(self.trajectory) > self.trajectory_len:
         self.trajectory.pop(0)
       
+
+    def update_position_change(self):
+      abx, aby = self.direction_vector
+      self.position_change = (
+        math.sqrt(math.pow(abx, 2) + math.pow(aby, 2)) / len(self.trajectory)
+      )
+
 
     def mark_missed(self):
         """Mark this track as missed (no association at the current time step).
@@ -193,4 +202,3 @@ class Track:
     def is_deleted(self):
         """Returns True if this track is dead and should be deleted."""
         return self.state == TrackState.Deleted
-
