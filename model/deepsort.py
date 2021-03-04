@@ -2,7 +2,17 @@ from deepsort.nn_matching import NearestNeighborDistanceMetric
 from deepsort import generate_detections as gdet
 from deepsort.tracker import Tracker
 from deepsort.detection import Detection
-from tool.detection_utils import *
+
+from tool.detection_utils import get_detection_scores
+from tool.detection_utils import get_detection_types
+from tool.detection_utils import get_detection_boxes
+from tool.detection_utils import ID
+from tool.detection_utils import TRAJECTORY
+from tool.detection_utils import BOX
+from tool.detection_utils import TYPE
+from tool.detection_utils import DETECTION_SCORE
+from tool.detection_utils import DIRECTION_VECTOR
+from tool.detection_utils import POSITION_CHANGE
 
 class DeepSort:
   def __init__(self, encoder_model_filename, max_cosine_distance, nn_budget):
@@ -40,6 +50,7 @@ class DeepSort:
 
         detection = dict()
         detection[ID] = track.track_id
+        detection[TRAJECTORY] = track.trajectory
         detection[BOX] = ([int(i) for i in track.to_tlbr()])
         detection[TYPE] = track.class_idx
         detection[DETECTION_SCORE] = track.score

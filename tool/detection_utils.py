@@ -8,12 +8,13 @@ FRAME = 'frame'
 DETECTIONS = 'detections'
 
 ID = 'id'
+TRAJECTORY = 'trajectory'
 BOX = 'box'
 DETECTION_SCORE = 'detection_score'
 DIRECTION_VECTOR = 'direction_vector'
 POSITION_CHANGE = 'position_change'
 TYPE = 'type'
-ACTION = 'person_action'
+ACTION = 'action'
 ACTION_SCORE = 'action_score'
 
 def get_detection_ids(detection):

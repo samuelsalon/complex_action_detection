@@ -8,6 +8,7 @@ from tool.detection_utils import DETECTION_SCORE
 from tool.detection_utils import DIRECTION_VECTOR
 from tool.detection_utils import ID
 from tool.detection_utils import ACTION
+from tool.detection_utils import TYPE
 import numpy as np
 
 INT_MAX = 10000
@@ -49,21 +50,16 @@ def get_annotation_by_object_id(anns, id):
   return new_anns
 
 
-def get_middle_detection_point(detection, is_person=False):
-  x1, y1, x2, y2 = detection[BOX]
-  return middle_point(x1, y1, x2, y2, is_person)
-
-
 def image_cut(img, x1, y1, x2, y2):
   return img[y1:y2, x1:x2]
 
 
-def pos_in_box(position, box):
-  if len(box) != 4 or len(position) != 2:
+def point_in_box(point, box):
+  if len(box) != 4 or len(point) != 2:
     return False
 
   box_x1, box_y1, box_x2, box_y2 = box
-  x, y = position
+  x, y = point
 
   if box_x1 <= x <= box_x2 and box_y1 <= y <= box_y2:
     return True
@@ -236,3 +232,4 @@ def vizualize_detection(frame, detection):
   cv2.line(frame, middle_point, direction_point, (0, 255, 0), 2)
   cv2.circle(frame, direction_point, 5, (255, 0, 0), -1)
   cv2.putText(frame, str(id), (x_dir, y_dir), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+
