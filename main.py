@@ -7,6 +7,8 @@ from model.slowfast import SlowFast
 from tool.action_utils import add_action, del_action
 from tool.action_utils import action_going_together, action_inside_area
 
+from tool.color_recognition_utils import colored_area, crop_image
+
 from tool.vizualize_utils import draw_polygon
 from tool.vizualize_utils import draw_color_recognition_position
 from tool.vizualize_utils import vizualize_detection
@@ -31,7 +33,7 @@ import time
 DATECTIONS_PER_SECOND = 6
 
 # crossroad.mp4 semafor
-x1_COLOR, y1_COLOR, x2_COLOR, y2_COLOR = 780, 40, 810, 140
+x1_s, y1_s, x2_s, y2_s = 780, 40, 810, 140
 ZEBRA_ACTION = "on zebra"
 ZEBRA_POLYGON = (
   (575,500), 
@@ -121,16 +123,20 @@ def main(args):
       else:
         write_annotation = False
       
+      color_recognition_area = crop_image(frame, (x1_s, y1_s), (x2_s, y2_s))
+      if colored_area(color_recognition_area, (55, 155, 225)) > 100:
+        cv2.putText(frame, "True", (x1_s, y1_s-30), 
+          cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (55, 155, 225), 1)
+
+      for idx in range(len(detections)):
+        action_going_together(frame, detections, idx)
+
       for (idx, detection) in enumerate(detections):
         action_inside_area(detection, BETWEEN_CAR_POLYGON, BETWEEN_CAR_ACTION)
         vizualize_detection(frame, detection)
       
-      for idx in range(len(detections)):
-        action_going_together(frame, detections, idx)
-      
       draw_polygon(frame, BETWEEN_CAR_POLYGON)
-      draw_color_recognition_position(frame, 
-        (x1_COLOR, y1_COLOR, x2_COLOR, y2_COLOR))
+      draw_color_recognition_position(frame, (x1_s, y1_s, x2_s, y2_s))
       video_manager.write(frame)
 
       if write_annotation and len(detections) > 0:

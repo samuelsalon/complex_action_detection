@@ -12,10 +12,10 @@ from tool.detection_utils import DIRECTION_VECTOR
 from tool.detection_utils import POSITION_CHANGE
 
 from tool.vizualize_utils import BGR_RED
+from tool.vector_utils import vector_by_points, angle_between_vectors, sum_vectors
 
 from fastdtw import fastdtw as fdtw
 from scipy.spatial.distance import cosine
-
 
 def action_inside_area(detection, area, action):
   detection_point = middle_point(*detection[BOX], detection[TYPE] == "person")
@@ -39,19 +39,26 @@ def action_going_together(frame, dets, idx=0):
       continue
     if cmp_det[TYPE] != act_det[TYPE]:
       continue
-          
+
+    cmp_det_mid_p = middle_point(*cmp_det[BOX], cmp_det[TYPE]=='person')
+    if not point_in_box(cmp_det_mid_p, act_det_p_area):
+      continue          
+
+    A, B = act_det_mid_p, sum_vectors(act_det_mid_p, act_det[DIRECTION_VECTOR])
+    C, D = cmp_det_mid_p, sum_vectors(cmp_det_mid_p, cmp_det[DIRECTION_VECTOR])
+    AB = vector_by_points(A, B)
+    CD = vector_by_points(C, D)
+    if (AB[0] == 0 and AB[1] == 0) or (CD[0] == 0 and CD[1] == 0):
+      continue
+
     cmp_det_dir = simplify_direction(
       cmp_det[DIRECTION_VECTOR])
-    if act_det_dir != cmp_det_dir:
+    if (angle_between_vectors(AB, CD) > 0.35) and (act_det_dir != cmp_det_dir):
       continue
 
     speed_diff = abs(
       act_det[POSITION_CHANGE] - cmp_det[POSITION_CHANGE])
     if speed_diff > 1.5:
-      continue
-
-    cmp_det_mid_p = middle_point(*cmp_det[BOX], cmp_det[TYPE]=='person')
-    if not point_in_box(cmp_det_mid_p, act_det_p_area):
       continue
     
     cmp_det_trj = cmp_det[TRAJECTORY]
@@ -81,3 +88,4 @@ def del_action(detection, action):
     detection[ACTION].pop(index)
   except:
     pass
+
