@@ -9,6 +9,8 @@ from tool.action_utils import action_going_together, action_inside_area
 
 from tool.color_recognition_utils import colored_area, crop_image
 
+from tool.vector_utils import order_polygon_points
+
 from tool.vizualize_utils import draw_polygon
 from tool.vizualize_utils import draw_color_recognition_position
 from tool.vizualize_utils import vizualize_detection
@@ -57,6 +59,16 @@ BETWEEN_CAR_POLYGON = (
   (730, 180), 
   (620, 420), 
   (180, 360)
+)
+
+BETWEEN_CAR_POLYGON_1 = (
+  (370, 150),
+  (450, 300),
+  (740, 130),
+  (690, 280),
+  (800, 350),
+  (800, 600),
+  (100, 400)
 )
 
 def parse_arguments():
@@ -132,10 +144,10 @@ def main(args):
         action_going_together(frame, detections, idx)
 
       for (idx, detection) in enumerate(detections):
-        action_inside_area(detection, BETWEEN_CAR_POLYGON, BETWEEN_CAR_ACTION)
+        action_inside_area(detection, BETWEEN_CAR_POLYGON_1, BETWEEN_CAR_ACTION)
         vizualize_detection(frame, detection)
       
-      draw_polygon(frame, BETWEEN_CAR_POLYGON)
+      draw_polygon(frame, BETWEEN_CAR_POLYGON_1)
       draw_color_recognition_position(frame, (x1_s, y1_s, x2_s, y2_s))
       video_manager.write(frame)
 
@@ -174,4 +186,3 @@ def main(args):
 if __name__ == "__main__":
   args = parse_arguments()
   main(args)
-
