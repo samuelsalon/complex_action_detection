@@ -53,12 +53,12 @@ def action_going_together(frame, dets, idx=0):
 
     cmp_det_dir = simplify_direction(
       cmp_det[DIRECTION_VECTOR])
-    if (angle_between_vectors(AB, CD) > 0.35) and (act_det_dir != cmp_det_dir):
+    if (angle_between_vectors(AB, CD) > 0.30) and (act_det_dir != cmp_det_dir):
       continue
 
     speed_diff = abs(
       act_det[POSITION_CHANGE] - cmp_det[POSITION_CHANGE])
-    if speed_diff > 1.5:
+    if speed_diff > 0.7:
       continue
     
     cmp_det_trj = cmp_det[TRAJECTORY]

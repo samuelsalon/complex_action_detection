@@ -51,10 +51,10 @@ def vizualize_detection(frame, detection):
   cv2.putText(frame, object_label, (x1, y1-10), 
     cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
   # draw action info label
-  if ACTION in detection:
-    action_label = "Actions: {}".format(str(detection[ACTION]))
-    cv2.putText(frame, action_label, (x1, y1-30), 
-      cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
+  #if ACTION in detection:
+  #  action_label = "Actions: {}".format(str(detection[ACTION]))
+  #  cv2.putText(frame, action_label, (x1, y1-30), 
+  #    cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
 
   # draw direction      
   x_dir, y_dir = direction_vector
@@ -64,6 +64,6 @@ def vizualize_detection(frame, detection):
   cv2.line(frame, detection_point, direction_point, BGR_GREEN, 2)
   cv2.circle(frame, direction_point, 5, BGR_RED, -1)
 
-  position_change_label = "{:.4f}".format(position_change)
+  position_change_label = "{:.1f}".format(position_change)
   cv2.putText(frame, str(position_change_label), detection_point, cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, BGR_WHITE, 1)
 

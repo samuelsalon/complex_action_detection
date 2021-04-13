@@ -6,7 +6,6 @@ import numpy as np
 import cv2
 import tensorflow.compat.v1 as tf
 
-
 def _run_in_batches(f, data_dict, out, batch_size):
     data_len = len(out)
     num_batches = int(data_len / batch_size)
@@ -72,7 +71,9 @@ class ImageEncoder(object):
 
     def __init__(self, checkpoint_filename, input_name="images",
                  output_name="features"):
-        self.session = tf.Session()
+        config = tf.ConfigProto()
+        config.gpu_options.per_process_gpu_memory_fraction = 0.2
+        self.session = tf.Session(config=config)
         with tf.io.gfile.GFile(checkpoint_filename, "rb") as file_handle:
             graph_def = tf.GraphDef()
             graph_def.ParseFromString(file_handle.read())

@@ -1,7 +1,6 @@
 import cv2
 import numpy as np 
 import matplotlib.pyplot as plt
-from google.colab.patches import cv2_imshow
 
 def colored_area(image, color):
   lower, upper = get_hsv_color_bounds(color)

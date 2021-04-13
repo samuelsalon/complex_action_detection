@@ -2,6 +2,9 @@ from deepsort.nn_matching import NearestNeighborDistanceMetric
 from deepsort import generate_detections as gdet
 from deepsort.tracker import Tracker
 from deepsort.detection import Detection
+from deepsort.preprocessing import non_max_suppression
+
+import numpy as np
 
 from tool.detection_utils import get_detection_scores
 from tool.detection_utils import get_detection_types
@@ -40,6 +43,12 @@ class DeepSort:
         Detection(bbox, score, feature, class_name)
         for (bbox, score, class_name, feature) in zip(bboxes_xywh, scores, object_types, features)
       ]
+
+      boxs = np.array([d.tlwh for d in detections])
+      scores = np.array([d.confidence for d in detections])
+      indices = non_max_suppression(boxs, 1.0, scores)
+      detections = [detections[i] for i in indices]
+
       self.tracker.predict()
       self.tracker.update(detections)
 

@@ -31,6 +31,7 @@ from tool.detection_utils import FRAME
 import cv2
 import argparse
 import time
+import os
 
 DATECTIONS_PER_SECOND = 6
 
@@ -73,10 +74,10 @@ BETWEEN_CAR_POLYGON_1 = (
 
 def parse_arguments():
   parser = argparse.ArgumentParser('Program used to detect and track objects in video')
-  parser.add_argument('--video', '-v', default="/content/video.mp4", help="Input path to video")
-  parser.add_argument('--output', '-o', default="/content/pred_video.mp4", help="Output path to video")
+  parser.add_argument('--video', '-v', default="/home/xsalon01/crossroad.mp4", help="Input path to video")
+  parser.add_argument('--output', '-o', default="/home/xsalon01/crossroad_pred.mp4", help="Output path to video")
   parser.add_argument('--codec', '-c', default="mp4v", help="Codec for output video")
-  parser.add_argument('--ann_file_output', '-afo', default="./data/annotation_file.txt", help="Output annotation file")
+  parser.add_argument('--ann_file_output', '-afo', default=None, help="Output annotation file")
   parser.add_argument('--jump_until', '-ju', default=None, type=int, help="Jump until frame number divisible by this number")
   parser.add_argument('--jump_every', '-je', default=None, type=int, help="Jump every frame number divisible by this number")
   return parser.parse_args()
@@ -88,6 +89,12 @@ def main(args):
   action_cfg.merge_from_file('./cfg/SLOWFAST_32x2_R101_50_50.yaml')
 
   video_name = args.video
+  video_basename = os.path.splitext(os.path.basename(video_name))[0]
+  if args.ann_file_output:
+    annotation_file_name = args.ann_file_output
+  else:
+    annotation_file_name = "./data/annotation_files/annotation_file_{}.txt".format(video_basename)
+
   video_seq = action_cfg.DATA.NUM_FRAMES * action_cfg.DATA.SAMPLING_RATE
   output_path = args.output
   model_filename = './data/mars-small128.pb'
@@ -110,7 +117,7 @@ def main(args):
   elif not jump_every and not jump_until:
     jump_until = int(video_fps / DATECTIONS_PER_SECOND)
 
-  annotation_file = open(args.ann_file_output, mode="w")
+  annotation_file = open(annotation_file_name, mode="w")
   
   detection_model = YOLOv4(detection_weights, detection_cfg, jump_until, jump_every)
   tracker_model = DeepSort(model_filename, max_cosine_distance, nn_budget)
@@ -126,7 +133,7 @@ def main(args):
     detected_sequence = detection_model(frames_sequence)
     tracked_sequence = tracker_model(detected_sequence)
     action_sequence = action_model(tracked_sequence)
-  
+
     write_annotation = True
     for (sequence_frame_idx, frame) in enumerate(action_sequence.frames):
       if sequence_frame_idx in action_sequence.detections.keys():
@@ -135,20 +142,20 @@ def main(args):
       else:
         write_annotation = False
       
-      color_recognition_area = crop_image(frame, (x1_s, y1_s), (x2_s, y2_s))
-      if colored_area(color_recognition_area, (55, 155, 225)) > 100:
-        cv2.putText(frame, "True", (x1_s, y1_s-30), 
-          cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (55, 155, 225), 1)
+      # color_recognition_area = crop_image(frame, (x1_s, y1_s), (x2_s, y2_s))
+      # if colored_area(color_recognition_area, (55, 155, 225)) > 100:
+      #   cv2.putText(frame, "True", (x1_s, y1_s-30), 
+      #     cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (55, 155, 225), 1)
 
-      for idx in range(len(detections)):
-        action_going_together(frame, detections, idx)
+      # for idx in range(len(detections)):
+      #   action_going_together(frame, detections, idx)
 
       for (idx, detection) in enumerate(detections):
-        action_inside_area(detection, BETWEEN_CAR_POLYGON_1, BETWEEN_CAR_ACTION)
+        # action_inside_area(detection, ZEBRA_POLYGON, ZEBRA_ACTION)
         vizualize_detection(frame, detection)
       
-      draw_polygon(frame, BETWEEN_CAR_POLYGON_1)
-      draw_color_recognition_position(frame, (x1_s, y1_s, x2_s, y2_s))
+      # draw_polygon(frame, ZEBRA_POLYGON)
+      # draw_color_recognition_position(frame, (x1_s, y1_s, x2_s, y2_s))
       video_manager.write(frame)
 
       if write_annotation and len(detections) > 0:
@@ -160,10 +167,10 @@ def main(args):
         annotation_file.write(str(frame_detections_annotation) + "\n")
 
     t1 = time.time()
-    print("""FRAME: {}/{}  FPS: {:.2f}""".format(
+    print("""\rFRAME: {}/{}  FPS: {:.2f}""".format(
       action_sequence.frames_idx, 
       video_manager.video.frames_count, 
-      video_manager.clip_sequence_size / (t1 - t0)))
+      video_manager.clip_sequence_size / (t1 - t0)), end="")
 
   video_manager.release()
   annotation_file.close()

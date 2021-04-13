@@ -165,8 +165,11 @@ class Track:
       x, y, w, h = self.to_tlwh()
       middle = int(x+w/2), int(y+h/2)
       self.trajectory.append(middle)
+      xs = [x for (x,y) in self.trajectory[:4]]
+      ys = [y for (x,y) in self.trajectory[:4]]
       xa, ya = self.trajectory[0]
-      xb, yb = self.trajectory[-1]
+      xb = int(sum(xs) / len(xs))
+      yb = int(sum(ys) / len(ys))
       self.direction_vector = int(xb - xa), int(yb - ya)
       if len(self.trajectory) > self.trajectory_len:
         self.trajectory.pop(0)
