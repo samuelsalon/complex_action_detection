@@ -11,6 +11,7 @@ cycler==0.10.0
 Cython==0.29.22
 decorator==4.4.2
 easydict==1.9
+<<<<<<< HEAD
 fastdtw==0.3.4
 ffmpeg==1.4
 filelock==3.0.12
@@ -18,7 +19,6 @@ flatbuffers==1.12
 future==0.18.2
 fvcore @ git+https://github.com/facebookresearch/fvcore.git@b5a71b3697a63eb515aea1d38c81265419384af0
 gast==0.3.3
-gdown==3.12.2
 google-auth==1.28.0
 google-auth-oauthlib==0.4.3
 google-pasta==0.2.0
@@ -45,13 +45,11 @@ networkx==2.5
 numpy==1.19.5
 oauthlib==3.1.0
 omegaconf==2.1.0.dev22
-opencv-python==4.5.1.48
 opt-einsum==3.3.0
 pandas==1.2.3
 parso==0.8.1
 pexpect==4.8.0
 pickleshare==0.7.5
-Pillow==8.1.2
 portalocker==2.2.1
 proglog==0.1.9
 prompt-toolkit==3.0.17
@@ -60,7 +58,6 @@ psutil==5.8.0
 ptyprocess==0.7.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
-pycocotools==2.0.2
 pydot==1.4.2
 Pygments==2.8.1
 pyparsing==2.4.7
@@ -80,7 +77,6 @@ simplejson==3.17.2
 six==1.15.0
 sklearn==0.0
 tabulate==0.8.9
-tensorboard==2.4.1
 tensorboard-plugin-wit==1.8.0
 tensorboardX==2.0
 tensorflow==2.4.1
@@ -98,5 +94,11 @@ wcwidth==0.2.5
 Werkzeug==1.0.1
 wrapt==1.12.1
 yacs==0.1.8
-youtube-dl==2021.3.14
 zipp==3.4.1
+Pillow==8.1.1
+skimage
+opencv_python
+pycocotools
+tensorflow-gpu==2.4.0
+youtube_dl
+gdown

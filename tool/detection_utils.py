@@ -16,6 +16,10 @@ POSITION_CHANGE = 'position_change'
 TYPE = 'type'
 ACTION = 'action'
 ACTION_SCORE = 'action_score'
+COLOR = 'color'
+COLOR_AREAS = 'color_areas'
+IS_COLORED = 'is_colored'
+X1, X2, Y1, Y2 = 'x1', 'x2', 'y1', 'y2'
 
 
 def simplify_direction(direction_vector):

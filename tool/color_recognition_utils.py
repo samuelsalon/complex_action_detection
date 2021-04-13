@@ -2,7 +2,7 @@ import cv2
 import numpy as np 
 import matplotlib.pyplot as plt
 
-def colored_area(image, color):
+def is_olored_area(image, color):
   lower, upper = get_hsv_color_bounds(color)
   hsv_image = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2HSV)
   mask = cv2.inRange(hsv_image, lower, upper)

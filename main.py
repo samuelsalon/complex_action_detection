@@ -3,74 +3,96 @@ from tool.video_utils import VideoManager
 from model.yolov4 import YOLOv4
 from model.deepsort import DeepSort
 from model.slowfast import SlowFast
-
-from tool.action_utils import add_action, del_action
-from tool.action_utils import action_going_together, action_inside_area
-
-from tool.color_recognition_utils import colored_area, crop_image
-
 from tool.vector_utils import order_polygon_points
 
-from tool.vizualize_utils import draw_polygon
-from tool.vizualize_utils import draw_color_recognition_position
-from tool.vizualize_utils import vizualize_detection
-from tool.annotation_utils import middle_point, is_inside_polygon, point_in_box
-from tool.detection_utils import get_personal_area
-
-from tool.detection_utils import ID
-from tool.detection_utils import TRAJECTORY
-from tool.detection_utils import BOX
-from tool.detection_utils import TYPE
-from tool.detection_utils import ACTION
-from tool.detection_utils import DETECTION_SCORE
-from tool.detection_utils import DIRECTION_VECTOR
-from tool.detection_utils import POSITION_CHANGE
-from tool.detection_utils import DETECTIONS
-from tool.detection_utils import FRAME
-
-import cv2
-import argparse
-import time
-import os
+from tool.action_utils import (
+  add_action,
+  del_action,
+  action_going_together,
+  action_inside_area
+)
+from tool.color_recognition_utils import (
+  is_colored_area, 
+  crop_image
+)
+from tool.vizualize_utils import (
+  draw_polygon,
+  draw_color_recognition_position,
+  vizualize_detection
+)
+from tool.annotation_utils import (
+  middle_point, 
+  is_inside_polygon, 
+  point_in_box
+)
+from tool.detection_utils import (
+  ID,
+  TRAJECTORY,
+  BOX,
+  TYPE,
+  ACTION,
+  DETECTION_SCORE,
+  DIRECTION_VECTOR,
+  POSITION_CHANGE,
+  DETECTIONS,
+  FRAME,
+  COLOR_AREAS,
+  IS_COLORED, COLOR,
+  X1, X2, Y1, Y2,
+  get_personal_area
+)
+import cv2, argparse, time, os, json
 
 DATECTIONS_PER_SECOND = 6
 
-# crossroad.mp4 semafor
-x1_s, y1_s, x2_s, y2_s = 780, 40, 810, 140
-ZEBRA_ACTION = "on zebra"
-ZEBRA_POLYGON = (
-  (575,500), 
-  (1070,500), 
-  (1045,650), 
-  (465,650)
-)
+# ZEBRA_ACTION = "on zebra"
+# ZEBRA_POLYGON = (
+#   (575,500), 
+#   (1070,500), 
+#   (1045,650), 
+#   (465,650)
+# )
 
-POLYGON_VIDEO = (
-  (700, 150), 
-  (900, 150), 
-  (950, 900), 
-  (800, 880), 
-  (750, 800)
-)
+# POLYGON_VIDEO = (
+#   (700, 150), 
+#   (900, 150), 
+#   (950, 900), 
+#   (800, 880), 
+#   (750, 800)
+# )
 
-BETWEEN_CAR_ACTION = "between cars"
-BETWEEN_CAR_POLYGON = (
-  (390, 150), 
-  (550, 150),
-  (730, 180), 
-  (620, 420), 
-  (180, 360)
-)
+# BETWEEN_CAR_ACTION = "between cars"
+# BETWEEN_CAR_POLYGON = (
+#   (390, 150), 
+#   (550, 150),
+#   (730, 180), 
+#   (620, 420), 
+#   (180, 360)
+# )
 
-BETWEEN_CAR_POLYGON_1 = (
-  (370, 150),
-  (450, 300),
-  (740, 130),
-  (690, 280),
-  (800, 350),
-  (800, 600),
-  (100, 400)
-)
+# BETWEEN_CAR_POLYGON_1 = (
+#   (370, 150),
+#   (450, 300),
+#   (740, 130),
+#   (690, 280),
+#   (800, 350),
+#   (800, 600),
+#   (100, 400)
+# )
+def parse_color_recognition_areas(json_file):
+  with open(json_file, 'r') as f:
+    json_dict = json.loads(f.read())
+  areas = {}
+  for area in json_dict['areas']:
+    areas[area['name']] = {
+      X1: area[X1],
+      X2: area[X2],
+      Y1: area[Y1],
+      Y2: area[Y2],
+      COLOR: area[COLOR]
+    }
+  return areas
+
 
 def parse_arguments():
   parser = argparse.ArgumentParser('Program used to detect and track objects in video')
@@ -78,9 +100,11 @@ def parse_arguments():
   parser.add_argument('--output', '-o', default="/home/xsalon01/crossroad_pred.mp4", help="Output path to video")
   parser.add_argument('--codec', '-c', default="mp4v", help="Codec for output video")
   parser.add_argument('--ann_file_output', '-afo', default=None, help="Output annotation file")
+  parser.add_argument('--color_recognition_file', '-crf', default="./data/color_recognition_file.json", help="File with defined areas with color recognition.")
   parser.add_argument('--jump_until', '-ju', default=None, type=int, help="Jump until frame number divisible by this number")
   parser.add_argument('--jump_every', '-je', default=None, type=int, help="Jump every frame number divisible by this number")
   return parser.parse_args()
+
 
 def main(args):
   detection_weights = './checkpoints/yolov4.weights'
@@ -100,6 +124,7 @@ def main(args):
   model_filename = './data/mars-small128.pb'
   nn_budget = None
   max_cosine_distance = 0.4
+  color_detection_areas = parse_color_recognition_areas(args.color_recognition_file)
 
   video_manager = VideoManager(video_name, video_seq, output_path, args.codec)
   video_width = video_manager.video.width
@@ -142,10 +167,15 @@ def main(args):
       else:
         write_annotation = False
       
-      # color_recognition_area = crop_image(frame, (x1_s, y1_s), (x2_s, y2_s))
-      # if colored_area(color_recognition_area, (55, 155, 225)) > 100:
-      #   cv2.putText(frame, "True", (x1_s, y1_s-30), 
-      #     cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (55, 155, 225), 1)
+      for name in color_detection_areas:
+        area = color_detection_areas[name]
+        x1, y1, x2, y2 = area[X1], area[Y1], area[X2], area[Y2]
+        color = area[COLOR]
+        croped_area = crop_image(frame, (x1, y1), (x2, y2))
+        is_colored = is_colored_area(color_recognition_area, color) > 100:
+        color_detection_areas[name][IS_COLORED] = is_colored
+        # cv2.putText(frame, "True", (x1, y1-30), 
+        #   cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, color, 1)
 
       # for idx in range(len(detections)):
       #   action_going_together(frame, detections, idx)
@@ -161,8 +191,9 @@ def main(args):
       if write_annotation and len(detections) > 0:
         frame_number = action_sequence.frames_idx + sequence_frame_idx
         frame_detections_annotation = {
-          FRAME : frame_number,
-          DETECTIONS : detections
+          FRAME: frame_number,
+          DETECTIONS: detections,
+          COLOR_AREAS: color_detection_areas
         }
         annotation_file.write(str(frame_detections_annotation) + "\n")
 
